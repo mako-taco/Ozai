@@ -1,4 +1,3 @@
-
 function Ozai(obj) {
 	var worker;
 	var self = this;
@@ -92,14 +91,3 @@ function Ozai(obj) {
 
 	__init__();
 }
-
-/***********************/
-var ozai = new Ozai({
-	doThings: function(a,b,cb) {
-		cb(a,b,a+b);
-	},
-
-	doMoreThings: function(a,b,cb) {
-		//asdfsadfsadf
-	}
-})

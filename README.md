@@ -31,3 +31,24 @@ Each of your functions will be created inside of the new Ozai object.  Call them
     ozai.reverseString("abcdefghijklmnopqrstuvwzyz", function(result, len) {
       alert(result + " is " + len + " characters long.");
     });
+    
+Multithreading
+===
+To take advantage of multi-core computers, create multiple Ozai instances
+
+    var ozais = [];
+    for(var i=0; i<8; i++) {
+      ozais.push(
+         new Ozai({
+            someFunction: function(a,b,c,cb) {
+               ...
+            },
+            otherFunction: function(x,y,cb) {
+               ...
+            }
+         }));
+         
+      var ozais[i].someFunction('a', 'b', 'c', function(some, results) {
+         console.log(some, results);
+      });
+    }

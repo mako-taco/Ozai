@@ -27,8 +27,16 @@ function Ozai(obj) {
 			\n 	scopeObj[fn].apply(scopeObj,args);						\
 			\n}";
 		
-		for(i in obj) {
-			workerScript +=	"\nscopeObj['" + i + "'] = " +	obj[i].toString();
+		//create functions for this thread to call
+		var isFunction = function(obj) {
+			return !!(obj && obj.constructor && obj.call && obj.apply);
+		};
+
+		for(var i in obj) {
+			if(isFunction(obj[i]))
+				workerScript +=	"\nscopeObj['" + i + "'] = " +	obj[i].toString();
+			else
+				workerScript +=	"\nscopeObj['" + i + "'] = " + JSON.stringify(obj[i]);
 		}
 
 		//create worker from script node
@@ -48,11 +56,6 @@ function Ozai(obj) {
 				worker.callbacks[msg.id].apply(worker.callbacks[msg.id], argArray);
 			}
 		}
-
-		//create functions for this thread to call
-		var isFunction = function(obj) {
-			return !!(obj && obj.constructor && obj.call && obj.apply);
-		};
 
 		for(name in obj) {
 			self[name] = (function(i) {

@@ -60,7 +60,6 @@ function Ozai(obj) {
 		for(name in obj) {
 			self[name] = (function(i) {
 				return function() {
-					console.log(i);
 					//check argument validity
 					for(var j=0; j<arguments.length-1; j++) {
 						//if there is a callback, add it to the map of cbs.

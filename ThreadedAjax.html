@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Ozai</title>
+		<style>
+			#node {
+				width: 400px;
+				height: 300px;
+				overflow-y: scroll; 
+				border: 3px solid black;
+				font-size: 10px;
+			}
+			html, body { 
+				font-family: Verdana, sans-serif;
+				height: 100%;
+				width: 100%;
+				margin: 0;
+				padding: 0; 
+			}
+		</style>
+	</head>
+	<body>
+		<h1>(GET) Node.js API</h1>
+		<div id="node"></div>
+	</body>
+
+	<script src="ozai.js"></script>
+	<script>
+		//Create a worker to perform AJAX requests in the background.
+		//Origin is needed because the URL of the worker is NOT 
+		//the same as the URL of the document.
+		var ajaxWorker = new Ozai({
+			origin: window.location.origin,
+			get: function(url, callback) {
+				var xhr = new XMLHttpRequest();
+				xhr.onreadystatechange = function() {
+					if (xhr.readyState==4 && xhr.status==200) {
+						callback(xhr.responseText);
+					}
+				}
+
+				//if posting to a relative path, append the origin
+				if(url.indexOf("//") < 0) {
+					url = this.origin + url;
+				}
+
+				xhr.open("GET", url, true);
+				xhr.send();
+			},
+			post: function(url, data, callback) {
+				var xhr = new XMLHttpRequest();
+				xhr.setRequestHeader("Content-type", "application/json");
+
+				xhr.onreadystatechange = function() {
+					if (xhr.readyState==4 && xhr.status==200) {
+						callback(xhr.responseText);
+					}
+				}
+
+				//if posting to a relative path, append the origin
+				if(url.indexOf("//") < 0) {
+					url = this.origin + url;
+				}
+
+				xhr.open("POST", this.origin + url, true);
+				xhr.send(JSON.stringify(data));
+			}
+		});
+
+		
+		//Using the ajaxWorker, perform a GET request to the node.js API...
+		ajaxWorker.get("http://nodejs.org/api/index.json", function(responseText) {
+			document.getElementById("node").innerHTML = responseText;
+		});
+	</script>
+</html>

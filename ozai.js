@@ -17,7 +17,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  SOFTWARE. */
 
-function Ozai(obj) {
+var Ozai = function (obj) {
 	var worker;
 	var self = this;
 	
@@ -59,56 +59,73 @@ function Ozai(obj) {
 		}
 
 		//create worker from script node
-		var script = new Blob([workerScript], {type: 'text/javascript'});
-		worker = new Worker(window.URL.createObjectURL(script));
-		worker.callbacks = {};
-		worker.onmessage = function(e) {
-			var msg = e.data;
-			if(msg.err) {
-				console.log(msg.err);
-			}
-			else if(worker.callbacks[msg.id]){
-				var argArray = [];
-				for(a in msg.args) {
-					argArray.push(msg.args[a]);
+		if(window.Worker) {
+			var script = new Blob([workerScript], {type: 'text/javascript'});
+			worker = new Worker(window.URL.createObjectURL(script));
+			worker.callbacks = {};
+			worker.onmessage = function(e) {
+				var msg = e.data;
+				if(msg.err) {
+					console.log(msg.err);
 				}
-				worker.callbacks[msg.id].apply(worker.callbacks[msg.id], argArray);
-				delete worker.callbacks[msg.id];
+				else if(worker.callbacks[msg.id]){
+					var argArray = [];
+					for(a in msg.args) {
+						argArray.push(msg.args[a]);
+					}
+					worker.callbacks[msg.id].apply(worker.callbacks[msg.id], argArray);
+					delete worker.callbacks[msg.id];
+				}
 			}
-		}
-
-		for(name in obj) {
-			self[name] = (function(i) {
-				return function() {
-					//check argument validity
-					for(var j=0; j<arguments.length-1; j++) {
-						//if there is a callback, add it to the map of cbs.
-						//only last arg can be a callback
-						if(isFunction(arguments[j])) {
-							throw "Cannot pass non-callback functions directly to a worker. \
-							Callbacks must be passed as the final argument to this function.";
+			for(name in obj) {
+				self[name] = (function(fnName) {
+					return function() {var id = makeID();
+						var lastArg = arguments[arguments.length-1];
+						if(isFunction(lastArg)) {
+							worker.callbacks[id] = lastArg;
+							arguments = Array.prototype.slice.call(arguments, 0, arguments.length-1);
 						}
-					}
+						else {
+							arguments = Array.prototype.slice.call(arguments, 0);
+						}
 
-					//register callback if one exists
-					var id = makeID();
-					var lastArg = arguments[arguments.length-1];
-					if(isFunction(lastArg)) {
-						worker.callbacks[id] = lastArg;
-						arguments = Array.prototype.slice.call(arguments, 0, arguments.length-1);
-					}
-					
-					var msg = {
-						id: id,
-						fn: i,
-						args: arguments
-					};
+						for(var i=0; i<arguments.length; i++) {
+							if(isFunction(arguments[i])) {
+								arguments[i] = arguments[i].toString();
+								arguments[i].__isFn__ = true;
+							}
+							arguments[i].__isFn__ = false;	
+						}
+						
+						var msg = {
+							id: id,
+							fn: fnName,
+							args: arguments
+						};
 
-					//send data to thread
-					worker.postMessage(msg);
-				}
-			})(name);
+						//send data to thread
+						worker.postMessage(msg);
+					}
+				})(name);
+			}
 		}
+		//Poly fill for no webworker support.  
+		else {
+			for(name in obj) {
+				if(isFunction(obj[name])) {
+					//strips closure vars from the function, like creating the 
+					//webworker would be doing if it was supported.
+					var txt = obj[name].toString();
+					var args = (/function\s*\(([\s\S]*?)\)/gi).exec(txt)[1];
+					var fnString = txt.replace(/function[\s\S]*?{/,'').slice(0, -1);
+					self[name] = new Function(args.replace(/\s+/gi,''), fnString);
+				}
+				else {
+					self[name] = obj[name];
+				}
+			}
+		}
+
 	}
 	__init__();
 }
